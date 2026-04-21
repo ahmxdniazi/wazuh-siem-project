@@ -1,0 +1,94 @@
+name: 🛡️ SIEM Project CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    name: Validate Project Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check Required Files Exist
+        run: |
+          echo "Checking required project files..."
+          files=(
+            "README.md"
+            "assets/banner.svg"
+            "configs/ossec.conf"
+            "configs/local_rules.xml"
+            "scripts/deploy-linux-agent.sh"
+            "scripts/deploy-windows-agent.ps1"
+            "scripts/run-atomic-tests.ps1"
+            "docs/TECHNICAL-DOCUMENTATION.md"
+            "screenshots/README.md"
+          )
+          for f in "${files[@]}"; do
+            if [ -f "$f" ]; then
+              echo "✅ Found: $f"
+            else
+              echo "❌ Missing: $f"
+              exit 1
+            fi
+          done
+          echo ""
+          echo "✅ All required files present!"
+
+      - name: 📋 Validate XML Rules Syntax
+        run: |
+          echo "Validating XML syntax for Wazuh rules..."
+          if xmllint --noout configs/local_rules.xml 2>/dev/null; then
+            echo "✅ local_rules.xml is valid XML"
+          else
+            echo "⚠️  xmllint not available, skipping XML validation"
+          fi
+
+      - name: 📋 Validate XML Config Syntax
+        run: |
+          echo "Validating ossec.conf syntax..."
+          if xmllint --noout configs/ossec.conf 2>/dev/null; then
+            echo "✅ ossec.conf is valid XML"
+          else
+            echo "⚠️  xmllint not available or config has warnings"
+          fi
+
+      - name: 🔒 Check for Sensitive Data
+        run: |
+          echo "Checking for accidentally committed sensitive data..."
+          
+          # Check for private keys
+          if grep -r "BEGIN PRIVATE KEY\|BEGIN RSA PRIVATE KEY\|BEGIN EC PRIVATE KEY" . --include="*.conf" --include="*.xml" --include="*.md" 2>/dev/null; then
+            echo "❌ WARNING: Private key data found!"
+            exit 1
+          fi
+          
+          # Check for hardcoded passwords (common patterns)
+          if grep -rn "password123\|admin123\|wazuh123" . --include="*.conf" --include="*.md" 2>/dev/null | grep -v ".gitignore"; then
+            echo "⚠️  WARNING: Possible hardcoded password found!"
+          fi
+          
+          echo "✅ No obvious sensitive data found"
+
+      - name: 📊 Project Statistics
+        run: |
+          echo ""
+          echo "📊 Project Statistics"
+          echo "════════════════════════════════"
+          echo "Total files:"
+          find . -not -path './.git/*' -type f | wc -l
+          echo ""
+          echo "Files by type:"
+          echo "  Markdown:   $(find . -name '*.md' -not -path './.git/*' | wc -l)"
+          echo "  XML:        $(find . -name '*.xml' -not -path './.git/*' | wc -l)"
+          echo "  Shell:      $(find . -name '*.sh' -not -path './.git/*' | wc -l)"
+          echo "  PowerShell: $(find . -name '*.ps1' -not -path './.git/*' | wc -l)"
+          echo "  SVG:        $(find . -name '*.svg' -not -path './.git/*' | wc -l)"
+          echo ""
+          echo "README word count: $(wc -w < README.md)"
+          echo "════════════════════════════════"

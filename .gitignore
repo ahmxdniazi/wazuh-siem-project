@@ -1,0 +1,76 @@
+# ================================================================
+#  .gitignore — Wazuh SIEM Project
+# ================================================================
+
+# Sensitive files — NEVER commit these
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+passwords.txt
+credentials.txt
+secrets.*
+.env
+.env.*
+
+# Wazuh installation artifacts
+wazuh-install.sh
+wazuh-install-files.tar
+wazuh-agent*.deb
+wazuh-agent*.msi
+wazuh-install.log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# VM files (too large for GitHub)
+*.vmdk
+*.vdi
+*.vhd
+*.vhdx
+*.ova
+*.ovf
+*.vmx
+*.vmxf
+
+# Log files (can be large)
+# Uncomment if you don't want logs tracked:
+# *.log
+
+# Archives
+# *.zip
+# *.tar.gz
+# *.tar
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log

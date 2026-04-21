@@ -1,0 +1,165 @@
+<!--
+  ================================================================
+  Wazuh Custom Detection Rules
+  Project: SIEM Deployment & Analysis
+  Author:  Muhammad Ahmad | 25I-7705
+  
+  Location: /var/ossec/etc/rules/local_rules.xml
+  ================================================================
+
+  Rule Severity Levels:
+    0  — Ignored
+    1-3 — Low (informational)
+    4-6 — Medium (warning)
+    7-11 — High (alert)
+    12-14 — Critical (immediate action)
+    15  — Maximum (severe)
+-->
+
+<group name="local,custom,siem-project">
+
+  <!-- ============================================================
+       RULE GROUP 1: Failed Authentication Detection
+       Detects repeated failed login attempts (brute force pattern)
+       ============================================================ -->
+
+  <!-- Alert on single authentication failure -->
+  <rule id="100001" level="5">
+    <if_sid>5503</if_sid>
+    <description>PAM: User login failed — Single failure recorded</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failed,pam,</group>
+  </rule>
+
+  <!-- Alert on multiple authentication failures (brute force) -->
+  <rule id="100002" level="10" frequency="5" timeframe="120">
+    <if_matched_sid>100001</if_matched_sid>
+    <same_source_ip/>
+    <description>Brute force attack detected — 5+ failed logins in 2 minutes from same IP</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failures,brute_force,pam,</group>
+  </rule>
+
+  <!-- ============================================================
+       RULE GROUP 2: Privilege Escalation Detection
+       ============================================================ -->
+
+  <!-- Sudo to root alert -->
+  <rule id="100010" level="7">
+    <if_sid>5402</if_sid>
+    <description>User escalated to ROOT via sudo — privilege escalation</description>
+    <mitre>
+      <id>T1548</id>
+      <id>T1548.003</id>
+    </mitre>
+    <group>privilege_escalation,sudo,</group>
+  </rule>
+
+  <!-- Unauthorized sudo attempt -->
+  <rule id="100011" level="9">
+    <if_sid>5406</if_sid>
+    <description>Unauthorized sudo command attempt detected</description>
+    <mitre>
+      <id>T1548</id>
+    </mitre>
+    <group>privilege_escalation,sudo,unauthorized,</group>
+  </rule>
+
+  <!-- ============================================================
+       RULE GROUP 3: Credential Dumping Detection
+       MITRE T1003.008 — /etc/passwd and /etc/shadow access
+       ============================================================ -->
+
+  <!-- Access to /etc/shadow detected -->
+  <rule id="100020" level="12">
+    <if_group>syscheck</if_group>
+    <match>/etc/shadow</match>
+    <description>CRITICAL: /etc/shadow file was accessed — possible credential dumping (T1003.008)</description>
+    <mitre>
+      <id>T1003.008</id>
+      <id>T1003</id>
+    </mitre>
+    <group>credential_access,credential_dumping,fim,</group>
+  </rule>
+
+  <!-- Unshadow command execution -->
+  <rule id="100021" level="14">
+    <if_group>audit</if_group>
+    <match>unshadow</match>
+    <description>CRITICAL: unshadow command executed — offline password cracking preparation</description>
+    <mitre>
+      <id>T1003.008</id>
+    </mitre>
+    <group>credential_access,credential_dumping,</group>
+  </rule>
+
+  <!-- ============================================================
+       RULE GROUP 4: Suspicious Process Activity
+       ============================================================ -->
+
+  <!-- Port scanning detection -->
+  <rule id="100030" level="8">
+    <if_sid>533</if_sid>
+    <description>Port status change detected — possible port scanning or reconnaissance</description>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+    <group>network_reconnaissance,port_scan,</group>
+  </rule>
+
+  <!-- ============================================================
+       RULE GROUP 5: File Integrity — Critical System Files
+       ============================================================ -->
+
+  <!-- /etc/passwd modification -->
+  <rule id="100040" level="11">
+    <if_group>syscheck</if_group>
+    <match>/etc/passwd</match>
+    <description>WARNING: /etc/passwd file modified — potential account manipulation</description>
+    <mitre>
+      <id>T1098</id>
+      <id>T1136</id>
+    </mitre>
+    <group>fim,account_manipulation,</group>
+  </rule>
+
+  <!-- SSH authorized_keys modification -->
+  <rule id="100041" level="12">
+    <if_group>syscheck</if_group>
+    <match>authorized_keys</match>
+    <description>CRITICAL: SSH authorized_keys file modified — persistence mechanism detected</description>
+    <mitre>
+      <id>T1098.004</id>
+    </mitre>
+    <group>fim,persistence,ssh,</group>
+  </rule>
+
+  <!-- /etc/sudoers modification -->
+  <rule id="100042" level="13">
+    <if_group>syscheck</if_group>
+    <match>/etc/sudoers</match>
+    <description>CRITICAL: /etc/sudoers modified — privilege escalation persistence</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>fim,privilege_escalation,sudoers,</group>
+  </rule>
+
+  <!-- ============================================================
+       RULE GROUP 6: Compliance Helpers
+       ============================================================ -->
+
+  <!-- PCI DSS 10.2.4 — Root command execution -->
+  <rule id="100050" level="6">
+    <if_sid>5402</if_sid>
+    <description>PCI-DSS 10.2.4: Root-level command successfully executed</description>
+    <group>pci_dss_10.2.4,gpg13_7.9,gdpr_IV_35.7.d,</group>
+  </rule>
+
+</group>
